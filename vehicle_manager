@@ -1,0 +1,149 @@
+import math
+import requests
+
+
+class Vehicle:
+    def __init__(self, name, model, year, color, price, latitude, longitude, id=None):
+        self.id = id
+        self.name = name
+        self.model = model
+        self.year = year
+        self.color = color
+        self.price = price
+        self.latitude = latitude
+        self.longitude = longitude
+
+    def show(self):
+        print(f"<Vehicle: {self.name} {self.model} {self.year} {self.color} {self.price}>", end='')
+
+
+class VehicleManager:
+    def __init__(self, *, url):
+        self.url = url
+        vehicles_list = []
+        request = requests.get(self.url + '/vehicles')
+        for i in request.json():
+            vehicles_list.append(
+                Vehicle(i["name"], i["model"], i["year"], i["color"], i["price"], i["latitude"],
+                        i["longitude"], i["id"]))
+        self.vehicles_list = vehicles_list
+
+    def get_vehicles(self):
+        for i in self.vehicles_list:
+            i.show()
+            print(', ', end='')
+
+    def filter_vehicles(self, *, params):
+        for vehicle in self.vehicles_list:
+            flag = True
+            for param in params:
+                if vehicle.__dict__[param] != params[param]:
+                    flag = False
+            if flag:
+                vehicle.show()
+            print('')
+
+    def get_vehicle(self, vehicle_id, need_print=True):
+        result = None
+        for vehicle in self.vehicles_list:
+            if vehicle.id == vehicle_id:
+                result = vehicle
+        if need_print:
+            result.show()
+            print('')
+        return result
+
+    def add_vehicle(self, vehicle):
+        vehicle.id = len(self.vehicles_list) + 1
+        request = requests.post(self.url + '/vehicles', data=vehicle.__dict__)
+        print(request)
+
+    def update_vehicle(self, vehicle):
+        request = requests.put(self.url + f'/vehicles/{vehicle.__dict__.pop("id")}', data=vehicle.__dict__)
+        print(request)
+
+    def delete_vehicle(self, id):
+        request = requests.delete(self.url + f'/vehicles/{id}')
+        print(request)
+
+    @staticmethod
+    def rad2deg(radians):
+        degrees = radians * 180 / 3.1415926535
+        return degrees
+
+    @staticmethod
+    def deg2rad(degrees):
+        radians = degrees * 3.1415926535 / 180
+        return radians
+
+    @staticmethod
+    def get_distance_between_points(latitude1, longitude1, latitude2, longitude2):
+        theta = longitude1 - longitude2
+
+        distance = 60 * 1.1515 * VehicleManager.rad2deg(
+            math.acos(
+                (math.sin(VehicleManager.deg2rad(latitude1)) * math.sin(VehicleManager.deg2rad(latitude2))) +
+                (math.cos(VehicleManager.deg2rad(latitude1)) * math.cos(VehicleManager.deg2rad(latitude2)) * math.cos(VehicleManager.deg2rad(theta)))
+            )
+        )
+
+        return round(distance * 1609.344, 2)
+
+    def get_distance(self, id1, id2, need_print=True):
+        latitude1, latitude2, longitude1, longitude2 = None, None, None, None
+        for vehicle in self.vehicles_list:
+            if vehicle.id == id1:
+                latitude1 = vehicle.latitude
+                longitude1 = vehicle.longitude
+            if vehicle.id == id2:
+                latitude2 = vehicle.latitude
+                longitude2 = vehicle.longitude
+        if latitude1 and latitude2 and longitude1 and longitude2:
+            if need_print:
+                print(manager.get_distance_between_points(latitude1, longitude1, latitude2, longitude2))
+            return manager.get_distance_between_points(latitude1, longitude1, latitude2, longitude2)
+
+    def get_nearest_vehicle(self, id):
+        if self.vehicles_list[1].id != id:
+            minimal_dist = VehicleManager.get_distance(self, self.vehicles_list[1].id, id, False)
+            minimal_obj = self.vehicles_list[1]
+        else:
+            minimal_dist = VehicleManager.get_distance(self, self.vehicles_list[2].id, id, False)
+            minimal_obj = self.vehicles_list[2]
+        for vehicle in self.vehicles_list:
+            if VehicleManager.get_distance(self, vehicle.id, id, False) < minimal_dist and vehicle.id != id:
+                minimal_dist = VehicleManager.get_distance(self, vehicle.id, id, False)
+                minimal_obj = vehicle
+        minimal_obj.show()
+
+
+manager = VehicleManager(url="https://test.tspb.su/test-task")
+# manager.get_vehicles()
+# manager.filter_vehicles(params={ "name": "Toyota", "year": 2021})
+# manager.get_vehicle(vehicle_id=18)
+# manager.add_vehicle(
+#      vehicle=Vehicle(
+#          name='Toyota',
+#          model='Camry',
+#          year=2021,
+#          color='red',
+#          price=21000,
+#          latitude=55.753215,
+#          longitude=37.620393
+#    )
+# )
+# manager.update_vehicle(
+#      vehicle=Vehicle(
+#          id=1,
+#          name='Toyota',
+#          model='Camry',
+#          year=2021,
+#          color='red',
+#          price=21000,
+#          latitude=55.753215,
+#          longitude=37.620393
+#      )
+# )
+# manager.delete_vehicle(id=1)
+# manager.get_distance(id1=1, id2=2)
+# manager.get_nearest_vehicle(id=1)
