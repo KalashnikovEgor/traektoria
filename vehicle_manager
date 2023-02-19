@@ -33,15 +33,21 @@ class VehicleManager:
             i.show()
             print(', ', end='')
 
-    def filter_vehicles(self, *, params):
+    def filter_vehicles(self, *, params, need_print=True):
+        result_list = []
         for vehicle in self.vehicles_list:
             flag = True
             for param in params:
                 if vehicle.__dict__[param] != params[param]:
                     flag = False
             if flag:
+                result_list.append(vehicle)
+        if need_print:
+            for vehicle in result_list:
                 vehicle.show()
             print('')
+        return result_list
+
 
     def get_vehicle(self, vehicle_id, need_print=True):
         result = None
